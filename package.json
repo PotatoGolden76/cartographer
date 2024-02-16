@@ -1,0 +1,25 @@
+{
+  "name": "cartographer",
+  "author": "Robert-Adrian Harangus <robert.harangus@gmail.com>",
+  "description": "procedural map generation on the web",
+  "private": true,
+  "version": "0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/seedrandom": "^3.0.8",
+    "@types/d3": "^7.4.3",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.0"
+  },
+  "dependencies": {
+    "d3-delaunay": "^6.0.4",
+    "d3-polygon": "^3.0.1",
+    "pixi-viewport": "^5.0.2",
+    "pixi.js": "^7.4.0"
+  }
+}
