@@ -59,7 +59,8 @@ function redraw() {
 
 function drawInfo() {
     detailsPanel.innerHTML = ""
-    createTextField(detailsPanel, `Point count: ${POINT_COUNT}`)
+    createTextField(detailsPanel, `Initial point count: ${POINT_COUNT}`)
+    createTextField(detailsPanel, `Point count: ${generator.point_count}`)
     createTextField(detailsPanel, `Relax steps: ${RELAX_STEPS}`)
     createTextField(detailsPanel, `Steps done: ${generator.stepsDone}`)
     createTextField(detailsPanel, `Seed: ${generator.seed}`)
@@ -77,6 +78,15 @@ createButton(
     "[G]\n Regenerate",
     () => {
         generator = new Generator()
+        redraw()
+    }
+)
+
+createButton(
+    controlsPanel,
+    "[P]\n Purge",
+    () => {
+        generator.purge_pointless()
         redraw()
     }
 )
@@ -133,6 +143,12 @@ document.addEventListener("keydown", (ev) => {
         return
     }
 
+    if (ev.isComposing || ev.key === "p") {
+        generator.purge_pointless()
+        redraw()
+        return
+    }
+
     if (ev.isComposing || ev.key === "1") {
         generatorDrawSettings.voronoi = !generatorDrawSettings.voronoi
         redraw()
@@ -170,7 +186,7 @@ window.addEventListener("resize", () => {
 
 viewport.addEventListener("pointerdown",  (target) => {
     const local = viewport.toWorld(target.x, target.y)
-    for(let c = 0; c < POINT_COUNT; c++) {
+    for(let c = 0; c < generator.point_count; c++) {
         if(generator.voronoi.contains(c, local.x, local.y)) {
             console.log(`Clicked on cell: ${c}`)
 

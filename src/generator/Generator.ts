@@ -1,4 +1,4 @@
-import {POINT_COUNT, RELAX_STEPS, MAP_HEIGHT, MAP_WIDTH} from "../globals/GeneratorGlobals.js";
+import {RELAX_STEPS, MAP_HEIGHT, MAP_WIDTH, POINT_COUNT} from "../globals/GeneratorGlobals.js";
 import {dist, relax_step} from "./utils.ts";
 import {Delaunay, Voronoi} from "d3-delaunay";
 import {polygonCentroid} from "d3-polygon";
@@ -21,6 +21,8 @@ export class Generator {
     private readonly noise = createNoise2D();
     private readonly bounding: [number, number, number, number];
     public voronoi: Voronoi<any>;
+    private elevations: number[] = []
+    point_count = 0;
 
     constructor(seed?: string) {
         this.points = [];
@@ -28,7 +30,9 @@ export class Generator {
         this.seed = seed || (Math.ceil(Math.random() * 9999)).toString()
         this.random = Math.random
 
-        for (let i = 0; i < POINT_COUNT; i++) {
+        this.point_count = POINT_COUNT
+
+        for (let i = 0; i < this.point_count; i++) {
             let t = this.generateRandomPoint(MAP_WIDTH, MAP_HEIGHT)
             while (this.points.find((e) => e[0] === t[0] && e[1] === t[1]))
                 t = this.generateRandomPoint(MAP_WIDTH, MAP_HEIGHT);
@@ -74,19 +78,56 @@ export class Generator {
         }
     }
 
+    purge_pointless() {
+        let c = 0;
+        let temp_points: number[] = [...this.voronoi.delaunay.points]
+        for (let i = 0; i < this.voronoi.delaunay.points.length; i += 2) {
+            const neighbours = this.voronoi.neighbors(i/2)
+            if (this.elevations[i / 2] < 0) {
+                let flag = true;
+
+                for (const neighboursKey of neighbours) {
+                    const neighbours2 = this.voronoi.neighbors(neighboursKey)
+                    if(this.elevations[neighboursKey] >= 0) {
+                        flag = false;
+                    } else {
+                        for (const neighboursK2 of neighbours2) {
+                            const neighbours2 = this.voronoi.neighbors(neighboursK2)
+                            if(this.elevations[neighboursK2] >= 0) {
+                                flag = false;
+                            }
+                        }
+                    }
+                }
+
+                if(flag) {
+                    temp_points[i] = -1
+                    temp_points[i + 1] = -1
+                    c++;
+                }
+            }
+        }
+        console.log(`${c} cells purged`)
+        this.point_count -= c
+        this.points = temp_points.filter((e) => e >= 0)
+        this.voronoi = new Delaunay(this.points).voronoi(this.bounding);
+        // console.log(this.voronoi)
+    }
+
 
     draw(graphics: Graphics, settings: GeneratorSettings) {
         const scaleCoefficient = 0.002;
         if (settings.cellColor) {
-            for (let i = 0; i < this.voronoi.delaunay.points.length; i+=2) {
-                let polys = this.voronoi.cellPolygon(i/2)
+            this.elevations = []
+            for (let i = 0; i < this.point_count * 2; i += 2) {
+                let polys = this.voronoi.cellPolygon(i / 2)
                 try {
-                    let x = this.voronoi.delaunay.points[i]*scaleCoefficient
-                    let y = this.voronoi.delaunay.points[i+1]*scaleCoefficient
+                    let x = this.voronoi.delaunay.points[i] * scaleCoefficient
+                    let y = this.voronoi.delaunay.points[i + 1] * scaleCoefficient
                     let current = this.noise(x, y)
-                    current = current-1/(dist(this.voronoi.delaunay.points[i], this.voronoi.delaunay.points[i+1], MAP_WIDTH, MAP_HEIGHT)*scaleCoefficient*15)
-                    // console.log(`[${this.voronoi.delaunay.points[i]}, ${this.voronoi.delaunay.points[i+1]}]`, current, i)
-                    if(current < 0) {
+                    current = current - 1 / (dist(this.voronoi.delaunay.points[i], this.voronoi.delaunay.points[i + 1], MAP_WIDTH, MAP_HEIGHT) * scaleCoefficient * 15)
+                    this.elevations.push(current)
+                    if (current < 0) {
                         graphics.beginFill(`0x424269`);
                     } else {
                         graphics.beginFill(`0xd1a882`);
@@ -95,10 +136,7 @@ export class Generator {
                     graphics.endFill();
                 } catch (e) {
                     console.log("O crapat :(")
-                    console.log(this.points.reduce(function (rows, key, index) {
-                        return (index % 2 == 0 ? rows.push([key])
-                            : rows[rows.length-1].push(key)) && rows;
-                    }, []))
+                    console.log(i / 2)
                     console.log(polys)
                 }
 
@@ -125,7 +163,7 @@ export class Generator {
 
 
         if (settings.centroids) {
-            for (let i = 0; i < this.voronoi.delaunay.points.length / 2; i++) {
+            for (let i = 0; i < this.point_count; i++) {
                 let polys = this.voronoi.cellPolygon(i)
                 try {
                     let p = polygonCentroid(polys)
