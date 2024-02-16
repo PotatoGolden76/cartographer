@@ -1,4 +1,4 @@
-export const MAP_WIDTH = 200;
-export const MAP_HEIGHT = 150
+export const MAP_WIDTH = 1600;
+export const MAP_HEIGHT = 1200;
 export const RELAX_STEPS = 5;
-export const POINT_COUNT = 100;
+export const POINT_COUNT = 20000;

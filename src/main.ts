@@ -42,9 +42,9 @@ await app.init();
 let generator = new Generator("whatever");
 let generatorDrawSettings = {
     centroids: false,
-    voronoi: true,
-    delaunay: true,
-    cellSite: true,
+    voronoi: false,
+    delaunay: false,
+    cellSite: false,
     cellColor: true,
 }
 
@@ -56,6 +56,7 @@ function redraw() {
     generator.draw(graphics, generatorDrawSettings)
     drawInfo()
 }
+
 function drawInfo() {
     detailsPanel.innerHTML = ""
     createTextField(detailsPanel, `Point count: ${POINT_COUNT}`)
@@ -94,7 +95,7 @@ const viewport = new Viewport({
     screenWidth: window.innerWidth,
     screenHeight: window.innerHeight,
     worldWidth: MAP_WIDTH,
-    worldHeight: MAP_HEIGHT+200,
+    worldHeight: MAP_HEIGHT + 200,
     events: app.renderer.events // the interaction module is important for wheel to work properly when renderer.view is placed or scaled
 }).drag()
     .pinch()
@@ -166,5 +167,15 @@ window.addEventListener("resize", () => {
     viewport.resize(window.innerWidth, window.innerHeight)
     centerViewport()
 });
+
+viewport.addEventListener("pointerdown",  (target) => {
+    const local = viewport.toWorld(target.x, target.y)
+    for(let c = 0; c < POINT_COUNT; c++) {
+        if(generator.voronoi.contains(c, local.x, local.y)) {
+            console.log(`Clicked on cell: ${c}`)
+
+        }
+    }
+})
 
 centerViewport()
